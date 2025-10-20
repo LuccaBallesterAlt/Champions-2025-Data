@@ -5,8 +5,7 @@ import ast
 from statistics import median, quantiles
 
 
-# Utilidades de caminho e parsing
-def resolve_path(file_name: str) -> str:
+def resolver_caminho(file_name: str) -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     path_root = os.path.join(here, file_name)
     path_data = os.path.join(here, 'data', file_name)
@@ -14,16 +13,16 @@ def resolve_path(file_name: str) -> str:
         return path_root
     if os.path.exists(path_data):
         return path_data
-    return path_root  
+    return path_root
 
 
-def read_csv_dicts(file_name: str):
-    path = resolve_path(file_name)
+def ler_csv_dicts(file_name: str):
+    path = resolver_caminho(file_name)
     with open(path, 'r', encoding='utf-8') as f:
         return list(csv.DictReader(f))
 
 
-def parse_percent(value: str) -> float:
+def parsear_porcentagem(value: str) -> float:
     if value is None:
         return 0.0
     s = str(value).strip().replace(',', '.')
@@ -35,7 +34,7 @@ def parse_percent(value: str) -> float:
         return 0.0
 
 
-def parse_float(value: str) -> float:
+def parsear_float(value: str) -> float:
     if value is None:
         return 0.0
     s = str(value).strip().replace(',', '.')
@@ -45,69 +44,68 @@ def parse_float(value: str) -> float:
         return 0.0
 
 
-def parse_int(value: str) -> int:
+def parsear_int(value: str) -> int:
     try:
         return int(str(value).strip())
     except Exception:
         return 0
 
 
-def parse_tuple_count_wins(text: str):
+def parsear_tupla_vitorias(text: str):
     if text is None:
         return 0, 0
     m = re.match(r"\s*(\d+)\s*\((\d+)\)\s*", str(text))
     if not m:
-        n = parse_int(text)
+        n = parsear_int(text)
         return n, 0
     total = int(m.group(1))
     wins = int(m.group(2))
     return total, wins
 
 
-# Carregamento de dados principais
-def load_player_stats():
-    return read_csv_dicts('player_stats.csv')
+def carregar_stats_jogadores():
+    return ler_csv_dicts('player_stats.csv')
 
 
-def load_agents_stats():
-    return read_csv_dicts('agents_stats.csv')
+def carregar_stats_agentes():
+    return ler_csv_dicts('agents_stats.csv')
 
 
-def load_maps_stats():
-    return read_csv_dicts('maps_stats.csv')
+def carregar_stats_mapas():
+    return ler_csv_dicts('maps_stats.csv')
 
 
-def load_economy_data():
-    return read_csv_dicts('economy_data.csv')
+def carregar_dados_economia():
+    return ler_csv_dicts('economy_data.csv')
 
 
-def load_performance_data():
-    return read_csv_dicts('performance_data.csv')
+def carregar_dados_performance():
+    return ler_csv_dicts('performance_data.csv')
 
 
-# Impressão em tabela estilo MySQL
-def print_table(headers, rows):
+def carregar_partidas_detalhadas():
+    return ler_csv_dicts('detailed_matches_maps.csv')
+
+
+def fazer_tabela(headers, rows):
     if not headers or not rows:
         return
     
     headers = [str(h) for h in headers]
     rows = [[str(cell) for cell in row] for row in rows]
     
-    # Calcular largura máxima de cada coluna
     col_widths = []
     for i, header in enumerate(headers):
         max_width = len(header)
         for row in rows:
             if i < len(row):
                 max_width = max(max_width, len(row[i]))
-        col_widths.append(max_width + 2)  # +2 para padding
+        col_widths.append(max_width + 2)
     
-    # Função para criar linha horizontal
-    def make_line():
+    def fazer_linha():
         return "+" + "+".join("-" * width for width in col_widths) + "+"
     
-    # Função para criar linha de dados
-    def make_row(cells):
+    def fazer_row(cells):
         row_parts = []
         for i, cell in enumerate(cells):
             if i < len(col_widths):
@@ -115,22 +113,23 @@ def print_table(headers, rows):
                 row_parts.append(padded_cell)
         return "|" + "|".join(row_parts) + "|"
     
-    # Imprimir tabela
-    print(make_line())
-    print(make_row(headers))
-    print(make_line())
+    print(fazer_linha())
+    print(fazer_row(headers))
+    print(fazer_linha())
     for row in rows:
-        print(make_row(row))
-    print(make_line())
+        print(fazer_row(row))
+    print(fazer_linha())
 
 
-# 1) Top 10 por performance geral
+
+
+# top players
 def listar_top10_performance():
-    players = load_player_stats()
+    players = carregar_stats_jogadores()
     for p in players:
-        p['rating_num'] = parse_float(p.get('rating'))
-        p['acs_num'] = parse_float(p.get('acs'))
-        p['kast_num'] = parse_percent(p.get('kast'))
+        p['rating_num'] = parsear_float(p.get('rating'))
+        p['acs_num'] = parsear_float(p.get('acs'))
+        p['kast_num'] = parsear_porcentagem(p.get('kast'))
     players.sort(key=lambda p: (p['rating_num'], p['acs_num'], p['kast_num']), reverse=True)
     headers = ["Rank", "Jogador", "Time", "Rating", "ACS", "KAST"]
     rows = []
@@ -143,12 +142,15 @@ def listar_top10_performance():
             f"{p['acs_num']:.1f}",
             f"{p['kast_num']:.0f}%",
         ])
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
 
 
-# 2) Top 5 especialistas por agente (aproximação usando KAST geral)
-def top_5_especialistas_por_agente(agente_escolhido: str):
-    players = load_player_stats()
+
+
+# Melhores com agente escolhido
+def top_5_especialistas():
+    players = carregar_stats_jogadores()
+    agente_escolhido = input("Agente: ").strip()
     alvo = (agente_escolhido or '').strip().lower()
     candidatos = []
     for p in players:
@@ -159,9 +161,9 @@ def top_5_especialistas_por_agente(agente_escolhido: str):
             agent_list = []
         agent_list_lower = [str(a).lower() for a in agent_list]
         if alvo and alvo in agent_list_lower:
-            p['kast_num'] = parse_percent(p.get('kast'))
-            p['rating_num'] = parse_float(p.get('rating'))
-            p['acs_num'] = parse_float(p.get('acs'))
+            p['kast_num'] = parsear_porcentagem(p.get('kast'))
+            p['rating_num'] = parsear_float(p.get('rating'))
+            p['acs_num'] = parsear_float(p.get('acs'))
             candidatos.append(p)
 
     if not candidatos:
@@ -176,16 +178,19 @@ def top_5_especialistas_por_agente(agente_escolhido: str):
             i,
             p.get('player_name','?'),
             p.get('team','?'),
-            f"{parse_percent(p.get('kast')):.0f}%",
-            f"{parse_float(p.get('rating')):.2f}",
-            f"{parse_float(p.get('acs')):.1f}",
+            f"{parsear_porcentagem(p.get('kast')):.0f}%",
+            f"{parsear_float(p.get('rating')):.2f}",
+            f"{parsear_float(p.get('acs')):.1f}",
         ])
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
 
 
-# 3) Pickrate e (sem winrate) por agente em mapa
-def pickrate_e_winrate_por_agente_em_mapa(mapa_escolhido: str):
-    stats = load_agents_stats()
+
+
+# Agente Mapa Pickrate e Winrate
+def pickrate_por_mapa():
+    stats = carregar_stats_agentes()
+    mapa_escolhido = input("Mapa: ").strip()
     mapa_col = (mapa_escolhido or '').strip()
     if not mapa_col:
         print("Mapa não informado.")
@@ -200,19 +205,23 @@ def pickrate_e_winrate_por_agente_em_mapa(mapa_escolhido: str):
     linhas = []
     for row in stats:
         agent = row.get('agent_name')
-        pick = parse_float(row.get(mapa_norm))
+        pick = parsear_float(row.get(mapa_norm))
         linhas.append((agent, pick))
     linhas.sort(key=lambda x: x[1], reverse=True)
 
     headers = [f"Agente ({mapa_norm})", "Pickrate"]
     rows = [[agent, f"{pick:.1f}%"] for agent, pick in linhas]
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
     print("Winrate por agente no mapa: N/D (não disponível nos dados fornecidos)")
 
 
-# 4) Comparar eficiência econômica entre dois times
-def comparar_eficiencia_economica_times(time_a: str, time_b: str):
-    # Mapear nomes completos para abreviações usadas no economy_data.csv
+
+
+# comparaçao economica
+def comparar_economia_times():
+    time_a = input("Time A: ").strip()
+    time_b = input("Time B: ").strip()
+
     team_mapping = {
         'Paper Rex': 'PRX',
         'Xi Lai Gaming': 'XLG', 
@@ -233,11 +242,10 @@ def comparar_eficiencia_economica_times(time_a: str, time_b: str):
         'Guangzhou Huadu Bilibili Gaming(Bilibili Gaming)': 'BLG'
     }
     
-    # Converter nomes para abreviações
     team_a_abbr = team_mapping.get(time_a, time_a)
     team_b_abbr = team_mapping.get(time_b, time_b)
     
-    econ = load_economy_data()
+    econ = carregar_dados_economia()
     def acumular(team_abbr: str):
         filtro = [r for r in econ if str(r.get('Team','')).strip().upper() == team_abbr.upper()]
         total = {
@@ -248,14 +256,14 @@ def comparar_eficiencia_economica_times(time_a: str, time_b: str):
             'full_buy_total': 0, 'full_buy_wins': 0,
         }
         for r in filtro:
-            total['pistol_won'] += parse_int(r.get('Pistol Won'))
-            t, w = parse_tuple_count_wins(r.get('Eco (won)'))
+            total['pistol_won'] += parsear_int(r.get('Pistol Won'))
+            t, w = parsear_tupla_vitorias(r.get('Eco (won)'))
             total['eco_total'] += t; total['eco_wins'] += w
-            t, w = parse_tuple_count_wins(r.get('Semi-eco (won)'))
+            t, w = parsear_tupla_vitorias(r.get('Semi-eco (won)'))
             total['semi_eco_total'] += t; total['semi_eco_wins'] += w
-            t, w = parse_tuple_count_wins(r.get('Semi-buy (won)'))
+            t, w = parsear_tupla_vitorias(r.get('Semi-buy (won)'))
             total['semi_buy_total'] += t; total['semi_buy_wins'] += w
-            t, w = parse_tuple_count_wins(r.get('Full buy(won)'))
+            t, w = parsear_tupla_vitorias(r.get('Full buy(won)'))
             total['full_buy_total'] += t; total['full_buy_wins'] += w
         return total
 
@@ -273,32 +281,33 @@ def comparar_eficiencia_economica_times(time_a: str, time_b: str):
         ["Semi-buy win%", f"{ratio(a['semi_buy_wins'], a['semi_buy_total']):.1f}%", f"{ratio(b['semi_buy_wins'], b['semi_buy_total']):.1f}%"],
         ["Full-buy win%", f"{ratio(a['full_buy_wins'], a['full_buy_total']):.1f}%", f"{ratio(b['full_buy_wins'], b['full_buy_total']):.1f}%"],
     ]
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
 
 
-# 5) Interseção de jogadores adaptativos (FK ∩ Clutch%)
-def interseccao_jogadores_adaptativos():
-    players = load_player_stats()
-    fk_list = []  # first_kills
-    cl_list = []  # clutch percent
+
+
+# intersecçao
+def jogadores_adaptativos():
+    players = carregar_stats_jogadores()
+    fk_list = []
+    cl_list = []
     for p in players:
-        fk_list.append(parse_int(p.get('first_kills')))
-        cl_list.append(parse_percent(p.get('cl_percent')))
+        fk_list.append(parsear_int(p.get('first_kills')))
+        cl_list.append(parsear_porcentagem(p.get('cl_percent')))
 
     if not players:
         print("Sem dados de jogadores.")
         return
 
-    # Usar quartis superiores (Q3) para definir 'alto'
     try:
-        q_fk = quantiles(fk_list, n=4)[2]  # Q3
+        q_fk = quantiles(fk_list, n=4)[2]
         q_cl = quantiles(cl_list, n=4)[2]
     except Exception:
         q_fk = median(fk_list)
         q_cl = median(cl_list)
 
-    altos_fk = {p.get('player_name') for p in players if parse_int(p.get('first_kills')) >= q_fk}
-    altos_cl = {p.get('player_name') for p in players if parse_percent(p.get('cl_percent')) >= q_cl}
+    altos_fk = {p.get('player_name') for p in players if parsear_int(p.get('first_kills')) >= q_fk}
+    altos_cl = {p.get('player_name') for p in players if parsear_porcentagem(p.get('cl_percent')) >= q_cl}
     intersec = [p for p in players if p.get('player_name') in altos_fk and p.get('player_name') in altos_cl]
 
     headers = ["Jogador", "Time", "First Kills", "Clutch%"]
@@ -307,19 +316,117 @@ def interseccao_jogadores_adaptativos():
         rows.append([
             p.get('player_name','?'),
             p.get('team','?'),
-            parse_int(p.get('first_kills')),
-            f"{parse_percent(p.get('cl_percent')):.0f}%",
+            parsear_int(p.get('first_kills')),
+            f"{parsear_porcentagem(p.get('cl_percent')):.0f}%",
         ])
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
 
 
-def load_detailed_matches_maps():
-    return read_csv_dicts('detailed_matches_maps.csv')
 
 
-# Ranking final dos times: posição oficial do Champions 2025
+# Team Pick Strategy Analysis
+def analisar_winrate_pick():
+    time_escolhido = input("Time: ").strip()
+    time = (time_escolhido or '').strip()
+    if not time:
+        print("Time não informado.")
+        return
+    
+    overview = ler_csv_dicts('detailed_matches_overview.csv')
+    team_matches = {}
+    for match in overview:
+        if time in match['teams']:
+            teams = match['teams'].split(' vs ')
+            opponent = teams[1] if teams[0] == time else teams[0]
+            team_matches[match['match_id']] = {
+                'opponent': opponent,
+                'score': match['score'],
+                'date': match['date']
+            }
+    
+    if not team_matches:
+        print(f"Time '{time}' não encontrado nos dados.")
+        return
+    
+    rows = carregar_partidas_detalhadas()
+    contagem = {
+        'proprio_pick': {'wins': 0, 'total': 0, 'details': []},
+        'pick_adversario': {'wins': 0, 'total': 0, 'details': []},
+        'decider': {'wins': 0, 'total': 0, 'details': []},
+    }
+
+    for r in rows:
+        match_id = r.get('match_id')
+        if match_id not in team_matches:
+            continue
+            
+        picked_by = str(r.get('picked_by','')).strip()
+        winner = str(r.get('winner','')).strip()
+        map_name = r.get('map_name', '')
+        score = r.get('score', '')
+        
+        if picked_by.lower() == 'decider':
+            cat = 'decider'
+        elif picked_by.lower() == time.lower():
+            cat = 'proprio_pick'
+        else:
+            cat = 'pick_adversario'
+
+        contagem[cat]['total'] += 1
+        won = winner.lower() == time.lower()
+        if won:
+            contagem[cat]['wins'] += 1
+        
+        match_info = team_matches[match_id]
+        result = "V" if won else "D"
+        contagem[cat]['details'].append({
+            'map': map_name,
+            'opponent': match_info['opponent'],
+            'score': score,
+            'result': result,
+            'picked_by': picked_by
+        })
+
+    def rate(c):
+        return (contagem[c]['wins'] / contagem[c]['total'] * 100.0) if contagem[c]['total'] > 0 else 0.0
+
+    headers = ["Cenário", "Wins", "Total", "Win%"]
+    label_map = {
+        'proprio_pick': 'Próprio Pick',
+        'pick_adversario': 'Pick do Adversário',
+        'decider': 'Decider',
+    }
+    rows = []
+    for key in ['proprio_pick', 'pick_adversario', 'decider']:
+        rows.append([
+            label_map[key],
+            contagem[key]['wins'],
+            contagem[key]['total'],
+            f"{rate(key):.1f}%",
+        ])
+    fazer_tabela(headers, rows)
+    
+    print(f"\n=== DETALHES DOS MAPAS PARA {time} ===")
+    for key in ['proprio_pick', 'pick_adversario', 'decider']:
+        if contagem[key]['total'] > 0:
+            print(f"\n{label_map[key]} ({contagem[key]['wins']}/{contagem[key]['total']} - {rate(key):.1f}%):")
+            details_headers = ["Mapa", "Adversário", "Score", "Resultado", "Pick"]
+            details_rows = []
+            for detail in contagem[key]['details']:
+                details_rows.append([
+                    detail['map'],
+                    detail['opponent'],
+                    detail['score'],
+                    detail['result'],
+                    detail['picked_by']
+                ])
+            fazer_tabela(details_headers, details_rows)
+
+
+
+
+# Final Team Ranking
 def ranking_final_times():
-    # Ranking oficial do Champions 2025
     official_ranking = [
         {"pos": "1º Lugar", "team": "NRG", "stage": "Vencedor da Grande Final"},
         {"pos": "2º Lugar", "team": "FNATIC", "stage": "Perdeu a Grande Final para NRG (3-2)"},
@@ -339,12 +446,10 @@ def ranking_final_times():
         {"pos": "", "team": "Dragon Ranger Gaming", "stage": "Eliminado na Fase de Grupos (Elimination D) por G2 Esports (2-0)"},
     ]
     
-    # Carregar dados para estatísticas
-    overview = read_csv_dicts('detailed_matches_overview.csv')
-    maps_rows = load_detailed_matches_maps()
-    player_rows = load_player_stats()
+    overview = ler_csv_dicts('detailed_matches_overview.csv')
+    maps_rows = carregar_partidas_detalhadas()
+    player_rows = carregar_stats_jogadores()
     
-    # Calcular estatísticas por time
     team_stats = {}
     for entry in official_ranking:
         team = entry['team']
@@ -359,7 +464,6 @@ def ranking_final_times():
             'player_count': 0
         }
     
-    # Contar séries vencidas/perdidas
     for m in overview:
         mid = m['match_id']
         t1, t2 = [t.strip() for t in m['teams'].split(' vs ')]
@@ -375,12 +479,10 @@ def ranking_final_times():
                 team_stats[t2]['series_wins'] += 1
                 team_stats[t1]['series_losses'] += 1
     
-    # Contar mapas vencidos/perdidos
     for r in maps_rows:
         winner = r['winner']
         if winner in team_stats:
             team_stats[winner]['maps_wins'] += 1
-        # Encontrar perdedor
         for m in overview:
             if m['match_id'] == r['match_id']:
                 t1, t2 = [t.strip() for t in m['teams'].split(' vs ')]
@@ -389,7 +491,6 @@ def ranking_final_times():
                 team_stats[loser]['maps_losses'] += 1
             break
     
-    # Mapear nomes completos para abreviações usadas no player_stats.csv
     team_name_mapping = {
         'NRG': 'NRG',
         'FNATIC': 'FNC',
@@ -409,10 +510,8 @@ def ranking_final_times():
         'Dragon Ranger Gaming': 'DRG'
     }
     
-    # Calcular performance média por time
     for p in player_rows:
         team_abbr = p.get('team')
-        # Encontrar o nome completo correspondente
         team_full_name = None
         for full_name, abbr in team_name_mapping.items():
             if abbr == team_abbr:
@@ -420,19 +519,17 @@ def ranking_final_times():
                 break
         
         if team_full_name and team_full_name in team_stats:
-            team_stats[team_full_name]['rating'] += parse_float(p.get('rating'))
-            team_stats[team_full_name]['acs'] += parse_float(p.get('acs'))
-            team_stats[team_full_name]['kast'] += parse_percent(p.get('kast'))
+            team_stats[team_full_name]['rating'] += parsear_float(p.get('rating'))
+            team_stats[team_full_name]['acs'] += parsear_float(p.get('acs'))
+            team_stats[team_full_name]['kast'] += parsear_porcentagem(p.get('kast'))
             team_stats[team_full_name]['player_count'] += 1
     
-    # Calcular médias
     for team in team_stats:
         if team_stats[team]['player_count'] > 0:
             team_stats[team]['rating'] /= team_stats[team]['player_count']
             team_stats[team]['acs'] /= team_stats[team]['player_count']
             team_stats[team]['kast'] /= team_stats[team]['player_count']
     
-    # Criar tabela
     headers = ["Posição", "Time", "Estágio de Eliminação", "Séries (W-L)", "Mapas (W-L)", "Rating médio", "ACS médio", "KAST médio"]
     rows = []
     
@@ -450,117 +547,13 @@ def ranking_final_times():
             f"{stats.get('kast', 0):.0f}%",
         ])
     
-    print_table(headers, rows)
-
-# 6) Win Rate por cenário de pick/ban para um time
-def analisar_winrate_por_pick_strategy(time_escolhido: str):
-    time = (time_escolhido or '').strip()
-    if not time:
-        print("Time não informado.")
-        return
-    
-    # Primeiro, encontrar todos os match_ids onde o time jogou
-    overview = read_csv_dicts('detailed_matches_overview.csv')
-    team_matches = {}
-    for match in overview:
-        if time in match['teams']:
-            # Extrair adversário
-            teams = match['teams'].split(' vs ')
-            opponent = teams[1] if teams[0] == time else teams[0]
-            team_matches[match['match_id']] = {
-                'opponent': opponent,
-                'score': match['score'],
-                'date': match['date']
-            }
-    
-    if not team_matches:
-        print(f"Time '{time}' não encontrado nos dados.")
-        return
-    
-    # Agora analisar apenas os mapas desses matches
-    rows = load_detailed_matches_maps()
-    contagem = {
-        'proprio_pick': {'wins': 0, 'total': 0, 'details': []},
-        'pick_adversario': {'wins': 0, 'total': 0, 'details': []},
-        'decider': {'wins': 0, 'total': 0, 'details': []},
-    }
-
-    for r in rows:
-        match_id = r.get('match_id')
-        # Só analisar mapas de partidas onde o time jogou
-        if match_id not in team_matches:
-            continue
-            
-        picked_by = str(r.get('picked_by','')).strip()
-        winner = str(r.get('winner','')).strip()
-        map_name = r.get('map_name', '')
-        score = r.get('score', '')
-        
-        # determinar categoria
-        if picked_by.lower() == 'decider':
-            cat = 'decider'
-        elif picked_by.lower() == time.lower():
-            cat = 'proprio_pick'
-        else:
-            cat = 'pick_adversario'
-
-        contagem[cat]['total'] += 1
-        won = winner.lower() == time.lower()
-        if won:
-            contagem[cat]['wins'] += 1
-        
-        # Adicionar detalhes
-        match_info = team_matches[match_id]
-        result = "V" if won else "D"
-        contagem[cat]['details'].append({
-            'map': map_name,
-            'opponent': match_info['opponent'],
-            'score': score,
-            'result': result,
-            'picked_by': picked_by
-        })
-
-    def rate(c):
-        return (contagem[c]['wins'] / contagem[c]['total'] * 100.0) if contagem[c]['total'] > 0 else 0.0
-
-    # Resumo geral
-    headers = ["Cenário", "Wins", "Total", "Win%"]
-    label_map = {
-        'proprio_pick': 'Próprio Pick',
-        'pick_adversario': 'Pick do Adversário',
-        'decider': 'Decider',
-    }
-    rows = []
-    for key in ['proprio_pick', 'pick_adversario', 'decider']:
-        rows.append([
-            label_map[key],
-            contagem[key]['wins'],
-            contagem[key]['total'],
-            f"{rate(key):.1f}%",
-        ])
-    print_table(headers, rows)
-    
-    # Detalhes por categoria
-    print(f"\n=== DETALHES DOS MAPAS PARA {time} ===")
-    for key in ['proprio_pick', 'pick_adversario', 'decider']:
-        if contagem[key]['total'] > 0:
-            print(f"\n{label_map[key]} ({contagem[key]['wins']}/{contagem[key]['total']} - {rate(key):.1f}%):")
-            details_headers = ["Mapa", "Adversário", "Score", "Resultado", "Pick"]
-            details_rows = []
-            for detail in contagem[key]['details']:
-                details_rows.append([
-                    detail['map'],
-                    detail['opponent'],
-                    detail['score'],
-                    detail['result'],
-                    detail['picked_by']
-                ])
-            print_table(details_headers, details_rows)
+    fazer_tabela(headers, rows)
 
 
-# Funções de Debug
-def debug_listar_times():
-    """Lista todos os times disponíveis com suas abreviações"""
+
+
+# Debug Team List
+def listar_times_debug():
     team_mapping = {
         'Paper Rex': 'PRX',
         'Xi Lai Gaming': 'XLG', 
@@ -587,11 +580,13 @@ def debug_listar_times():
         rows.append([full_name, abbr])
     
     print("=== TIMES DISPONÍVEIS ===")
-    print_table(headers, rows)
+    fazer_tabela(headers, rows)
 
 
-def debug_menu():
-    """Menu de debug com opções de diagnóstico"""
+
+
+# Debug Menu System
+def menu_debug():
     while True:
         print("\n=== MENU DE DEBUG ===")
         print("1. Listar todos os times disponíveis")
@@ -600,7 +595,7 @@ def debug_menu():
         op = input("Escolha uma opção: ").strip()
         
         if op == '1':
-            debug_listar_times()
+            listar_times_debug()
         elif op == '2':
             break
         else:
@@ -609,43 +604,44 @@ def debug_menu():
         input("\nPressione Enter para continuar...")
 
 
+
+
+# Main Menu System
 def menu():
-    print("1. Listar top 10 jogadores por performance geral") #Requisito: Ordenar (KAST, Rating, ACS).
-    print("2. Top 5 especialistas por agente") #Requisito: Agrupar (Top por Agente e KAST).
-    print("3. Pickrate e winrate por agente em mapa") #Requisito: Pesquisar por 2 atributos (Agente e Mapa).
-    print("4. Comparar economia de times") #Requisito: Comparar/Média (Economia).
-    print("5. Intersecção de Players que mais agregam valor em rounds") #Requisito: Conjuntos (Intersecção de First Kills e Clutches).
-    print("6. Analisar winrate em mapas picks e deciders de um time") #Requisito: Profundidade do Map Pool.
-    print("7. Ranking final de times com séries, mapas e média de performance.") #Ranking final de times com séries, mapas e média de performance.
-    print("8. Menu de Debug") #Menu de debug com funções auxiliares.
+    print("1. Listar top 10 jogadores por performance geral")
+    print("2. Top 5 especialistas por agente")
+    print("3. Pickrate e winrate por agente em mapa")
+    print("4. Comparar economia de times")
+    print("5. Intersecção de Players que mais agregam valor em rounds")
+    print("6. Analisar winrate em mapas picks e deciders de um time")
+    print("7. Ranking final de times com séries, mapas e média de performance.")
+    print("8. Menu de Debug")
     print("9. Sair do programa")
 
 
-def main():
+
+
+# Main Application Loop
+def principal():
     while True:
         menu()
         op = input("Escolha uma opção: ").strip().lower()
         if op == '1':
             listar_top10_performance()
         elif op == '2':
-            agente = input("Agente: ").strip()
-            top_5_especialistas_por_agente(agente)
+            top_5_especialistas()
         elif op == '3':
-            mapa = input("Mapa: ").strip()
-            pickrate_e_winrate_por_agente_em_mapa(mapa)
+            pickrate_por_mapa()
         elif op == '4':
-            a = input("Time A: ").strip()
-            b = input("Time B: ").strip()
-            comparar_eficiencia_economica_times(a, b)
+            comparar_economia_times()
         elif op == '5':
-            interseccao_jogadores_adaptativos()
+            jogadores_adaptativos()
         elif op == '6':
-            t = input("Time: ").strip()
-            analisar_winrate_por_pick_strategy(t)
+            analisar_winrate_pick()
         elif op == '7':
             ranking_final_times()
         elif op == '8':
-            debug_menu()
+            menu_debug()
         elif op == '9':
             break
         else:
@@ -654,4 +650,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    principal()
