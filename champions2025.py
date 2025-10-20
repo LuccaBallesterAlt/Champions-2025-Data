@@ -5,6 +5,34 @@ import ast
 from statistics import median, quantiles
 
 
+TEAM_ABBREVIATIONS = {
+    'Paper Rex': 'PRX',
+    'Xi Lai Gaming': 'XLG', 
+    'GIANTX': 'GX',
+    'Sentinels': 'SEN',
+    'NRG': 'NRG',
+    'EDward Gaming': 'EDG',
+    'Team Liquid': 'TL',
+    'DRX': 'DRX',
+    'Dragon Ranger Gaming': 'DRG',
+    'T1': 'T1',
+    'G2 Esports': 'G2',
+    'Team Heretics': 'TH',
+    'Bilibili Gaming': 'BLG',
+    'MIBR': 'MIBR',
+    'Rex Regum Qeon': 'RRQ',
+    'FNATIC': 'FNC',
+    'Guangzhou Huadu Bilibili Gaming(Bilibili Gaming)': 'BLG', 
+    'PRX': 'PRX', 'XLG': 'XLG', 'GX': 'GX', 'SEN': 'SEN', 'NRG': 'NRG', 'EDG': 'EDG', 'TL': 'TL',
+    'DRX': 'DRX', 'DRG': 'DRG', 'T1': 'T1', 'G2': 'G2', 'TH': 'TH', 'BLG': 'BLG', 'MIBR': 'MIBR',
+    'RRQ': 'RRQ', 'FNC': 'FNC'
+}
+
+def get_team_abbr(team_name: str, mapping=TEAM_ABBREVIATIONS) -> str:
+    name = team_name.strip()
+    return mapping.get(name, name)
+
+
 def resolver_caminho(file_name: str) -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     path_root = os.path.join(here, file_name)
@@ -121,9 +149,6 @@ def fazer_tabela(headers, rows):
     print(fazer_linha())
 
 
-
-
-# top players
 def listar_top10_performance():
     players = carregar_stats_jogadores()
     for p in players:
@@ -145,9 +170,6 @@ def listar_top10_performance():
     fazer_tabela(headers, rows)
 
 
-
-
-# Melhores com agente escolhido
 def top_5_especialistas():
     players = carregar_stats_jogadores()
     agente_escolhido = input("Agente: ").strip()
@@ -185,9 +207,6 @@ def top_5_especialistas():
     fazer_tabela(headers, rows)
 
 
-
-
-# Agente Mapa Pickrate e Winrate
 def pickrate_por_mapa():
     stats = carregar_stats_agentes()
     mapa_escolhido = input("Mapa: ").strip()
@@ -215,35 +234,12 @@ def pickrate_por_mapa():
     print("Winrate por agente no mapa: N/D (não disponível nos dados fornecidos)")
 
 
-
-
-# comparaçao economica
 def comparar_economia_times():
     time_a = input("Time A: ").strip()
     time_b = input("Time B: ").strip()
 
-    team_mapping = {
-        'Paper Rex': 'PRX',
-        'Xi Lai Gaming': 'XLG', 
-        'GIANTX': 'GX',
-        'Sentinels': 'SEN',
-        'NRG': 'NRG',
-        'EDward Gaming': 'EDG',
-        'Team Liquid': 'TL',
-        'DRX': 'DRX',
-        'Dragon Ranger Gaming': 'DRG',
-        'T1': 'T1',
-        'G2 Esports': 'G2',
-        'Team Heretics': 'TH',
-        'Bilibili Gaming': 'BLG',
-        'MIBR': 'MIBR',
-        'Rex Regum Qeon': 'RRQ',
-        'FNATIC': 'FNC',
-        'Guangzhou Huadu Bilibili Gaming(Bilibili Gaming)': 'BLG'
-    }
-    
-    team_a_abbr = team_mapping.get(time_a, time_a)
-    team_b_abbr = team_mapping.get(time_b, time_b)
+    team_a_abbr = get_team_abbr(time_a)
+    team_b_abbr = get_team_abbr(time_b)
     
     econ = carregar_dados_economia()
     def acumular(team_abbr: str):
@@ -284,9 +280,6 @@ def comparar_economia_times():
     fazer_tabela(headers, rows)
 
 
-
-
-# intersecçao
 def jogadores_adaptativos():
     players = carregar_stats_jogadores()
     fk_list = []
@@ -296,7 +289,7 @@ def jogadores_adaptativos():
         cl_list.append(parsear_porcentagem(p.get('cl_percent')))
 
     if not players:
-        print("Sem dados de jogadores.")
+        print("Sem dados de jogadores")
         return
 
     try:
@@ -322,14 +315,12 @@ def jogadores_adaptativos():
     fazer_tabela(headers, rows)
 
 
-
-
-# Team Pick Strategy Analysis
 def analisar_winrate_pick():
     time_escolhido = input("Time: ").strip()
     time = (time_escolhido or '').strip()
+    time = get_team_abbr(time) #vsfffffffffff
     if not time:
-        print("Time não informado.")
+        print("Equipe invalida.")
         return
     
     overview = ler_csv_dicts('detailed_matches_overview.csv')
@@ -423,9 +414,6 @@ def analisar_winrate_pick():
             fazer_tabela(details_headers, details_rows)
 
 
-
-
-# Final Team Ranking
 def ranking_final_times():
     official_ranking = [
         {"pos": "1º Lugar", "team": "NRG", "stage": "Vencedor da Grande Final"},
@@ -491,29 +479,11 @@ def ranking_final_times():
                 team_stats[loser]['maps_losses'] += 1
             break
     
-    team_name_mapping = {
-        'NRG': 'NRG',
-        'FNATIC': 'FNC',
-        'DRX': 'DRX', 
-        'Paper Rex': 'PRX',
-        'MIBR': 'MIBR',
-        'Team Heretics': 'TH',
-        'G2 Esports': 'G2',
-        'GIANTX': 'GX',
-        'Team Liquid': 'TL',
-        'Xi Lai Gaming': 'XLG',
-        'T1': 'T1',
-        'Rex Regum Qeon': 'RRQ',
-        'Sentinels': 'SEN',
-        'EDward Gaming': 'EDG',
-        'Bilibili Gaming': 'BLG',
-        'Dragon Ranger Gaming': 'DRG'
-    }
     
     for p in player_rows:
         team_abbr = p.get('team')
         team_full_name = None
-        for full_name, abbr in team_name_mapping.items():
+        for full_name, abbr in TEAM_ABBREVIATIONS.items():
             if abbr == team_abbr:
                 team_full_name = full_name
                 break
@@ -550,42 +520,16 @@ def ranking_final_times():
     fazer_tabela(headers, rows)
 
 
-
-
-# Debug Team List
 def listar_times_debug():
-    team_mapping = {
-        'Paper Rex': 'PRX',
-        'Xi Lai Gaming': 'XLG', 
-        'GIANTX': 'GX',
-        'Sentinels': 'SEN',
-        'NRG': 'NRG',
-        'EDward Gaming': 'EDG',
-        'Team Liquid': 'TL',
-        'DRX': 'DRX',
-        'Dragon Ranger Gaming': 'DRG',
-        'T1': 'T1',
-        'G2 Esports': 'G2',
-        'Team Heretics': 'TH',
-        'Bilibili Gaming': 'BLG',
-        'MIBR': 'MIBR',
-        'Rex Regum Qeon': 'RRQ',
-        'FNATIC': 'FNC',
-        'Guangzhou Huadu Bilibili Gaming(Bilibili Gaming)': 'BLG'
-    }
-    
     headers = ["Nome Completo", "Abreviação"]
     rows = []
-    for full_name, abbr in team_mapping.items():
+    for full_name, abbr in TEAM_ABBREVIATIONS.items():
         rows.append([full_name, abbr])
     
     print("=== TIMES DISPONÍVEIS ===")
     fazer_tabela(headers, rows)
 
 
-
-
-# Debug Menu System
 def menu_debug():
     while True:
         print("\n=== MENU DE DEBUG ===")
@@ -604,9 +548,6 @@ def menu_debug():
         input("\nPressione Enter para continuar...")
 
 
-
-
-# Main Menu System
 def menu():
     print("1. Listar top 10 jogadores por performance geral")
     print("2. Top 5 especialistas por agente")
@@ -619,9 +560,6 @@ def menu():
     print("9. Sair do programa")
 
 
-
-
-# Main Application Loop
 def principal():
     while True:
         menu()
