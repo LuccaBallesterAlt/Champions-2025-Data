@@ -532,9 +532,9 @@ def listar_times_debug():
 
 def menu_debug():
     while True:
-        print("\n=== MENU DE DEBUG ===")
-        print("1. Listar todos os times disponíveis")
-        print("2. Voltar ao menu principal")
+        print("\n=-= MENU DE DEBUG =-=")
+        print("1 | Listar todos os times disponíveis")
+        print("2 | Voltar ao menu principal")
         
         op = input("Escolha uma opção: ").strip()
         
@@ -549,15 +549,17 @@ def menu_debug():
 
 
 def menu():
-    print("1. Listar top 10 jogadores por performance geral")
-    print("2. Top 5 especialistas por agente")
-    print("3. Pickrate e winrate por agente em mapa")
-    print("4. Comparar economia de times")
-    print("5. Intersecção de Players que mais agregam valor em rounds")
-    print("6. Analisar winrate em mapas picks e deciders de um time")
-    print("7. Ranking final de times com séries, mapas e média de performance.")
-    print("8. Menu de Debug")
-    print("9. Sair do programa")
+    print("-=-=-"*20)
+    print("1 | Listar top 10 jogadores por performance geral")
+    print("2 | Top 5 especialistas por agente")
+    print("3 | Pickrate de agentes por mapa")
+    print("4 | Comparar economia de times")
+    print("5 | Intersecção de Players FK e Clutch%")
+    print("6 | Analisar winrate em mapas picks e deciders de um time")
+    print("7 | Ranking final de times com séries, mapas e média de performance.")
+    print("8 | Menu de Debug")
+    print("9 | Sair do programa")
+    print("-=-=-"*20)
 
 
 def principal():
